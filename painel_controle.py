@@ -44,57 +44,69 @@ with st.sidebar:
     meses_selecionados = st.multiselect("Selecione os meses", meses, default=meses)
     categorias_selecionadas = st.multiselect("Selecione as categorias", categorias, default=categorias)
 
-# Filtrando os dados
-colunas_selecionadas = ["Mês"] + [f"{ano}_{categoria}" for ano in anos_selecionados for categoria in categorias_selecionadas]
-df_filtrado = df[df["Mês"].isin(meses_selecionados)][colunas_selecionadas]
+# Verificando se filtros estão selecionados
+if not anos_selecionados or not meses_selecionados or not categorias_selecionadas:
+    st.error("Por favor, selecione pelo menos um ano, um mês e uma categoria.")
+else:
+    # Filtrando os dados
+    colunas_selecionadas = ["Mês"] + [f"{ano}_{categoria}" for ano in anos_selecionados for categoria in categorias_selecionadas]
+    df_filtrado = df[df["Mês"].isin(meses_selecionados)][colunas_selecionadas]
 
-# Criando os gráficos
-fig1, ax1 = plt.subplots(figsize=(18, 10))
-for coluna in colunas_selecionadas[1:]:
-    ax1.plot(df_filtrado["Mês"], df_filtrado[coluna], marker='o', label=coluna)
-ax1.set_title("Número de Instrumentos por Mês")
-ax1.set_xlabel("Mês")
-ax1.set_ylabel("Quantidade")
-ax1.legend()
-ax1.set_facecolor('white')
+    # Substituindo NaN por zero
+    df_filtrado = df_filtrado.fillna(0)
 
-fig2, ax2 = plt.subplots(figsize=(18, 10))
-bar_width = 0.2
-index = range(len(df_filtrado["Mês"]))
-for i, coluna in enumerate(colunas_selecionadas[1:]):
-    ax2.bar([p + bar_width * i for p in index], df_filtrado[coluna], bar_width, label=coluna)
-ax2.set_title("Número de Instrumentos por Mês (Gráfico de Barras)")
-ax2.set_xlabel("Mês")
-ax2.set_ylabel("Quantidade")
-ax2.set_xticks([p + bar_width * (len(colunas_selecionadas[1:]) - 1) / 2 for p in index])
-ax2.set_xticklabels(df_filtrado["Mês"])
-ax2.legend()
-ax2.set_facecolor('white')
+    # Criando os gráficos
+    fig1, ax1 = plt.subplots(figsize=(18, 10))
+    for coluna in colunas_selecionadas[1:]:
+        ax1.plot(df_filtrado["Mês"], df_filtrado[coluna], marker='o', label=coluna)
+    ax1.set_title("Número de Instrumentos por Mês")
+    ax1.set_xlabel("Mês")
+    ax1.set_ylabel("Quantidade")
+    ax1.legend()
+    ax1.set_facecolor('white')
 
-fig3, ax3 = plt.subplots(figsize=(18, 10))
-df_sum = df_filtrado[colunas_selecionadas[1:]].sum()
-ax3.pie(df_sum, labels=colunas_selecionadas[1:], autopct='%1.1f%%', startangle=90)
-ax3.set_title("Distribuição de Instrumentos por Categoria")
+    fig2, ax2 = plt.subplots(figsize=(18, 10))
+    bar_width = 0.2
+    index = range(len(df_filtrado["Mês"]))
+    for i, coluna in enumerate(colunas_selecionadas[1:]):
+        ax2.bar([p + bar_width * i for p in index], df_filtrado[coluna], bar_width, label=coluna)
+    ax2.set_title("Número de Instrumentos por Mês (Gráfico de Barras)")
+    ax2.set_xlabel("Mês")
+    ax2.set_ylabel("Quantidade")
+    ax2.set_xticks([p + bar_width * (len(colunas_selecionadas[1:]) - 1) / 2 for p in index])
+    ax2.set_xticklabels(df_filtrado["Mês"])
+    ax2.legend()
+    ax2.set_facecolor('white')
 
-fig4, ax4 = plt.subplots(figsize=(18, 10))
-for coluna in colunas_selecionadas[1:]:
-    ax4.fill_between(df_filtrado["Mês"], df_filtrado[coluna], alpha=0.5, label=coluna)
-ax4.set_title("Número de Instrumentos por Mês (Gráfico de Área)")
-ax4.set_xlabel("Mês")
-ax4.set_ylabel("Quantidade")
-ax4.legend()
-ax4.set_facecolor('white')
+    # Selecionando os top 5 valores para o gráfico de pizza
+    fig3, ax3 = plt.subplots(figsize=(18, 10))
+    df_sum = df_filtrado[colunas_selecionadas[1:]].sum().sort_values(ascending=False)
+    top_5 = df_sum[:5]
+    others = df_sum[5:].sum()
+    if others > 0:
+        top_5["Others"] = others
+    ax3.pie(top_5, labels=top_5.index, autopct='%1.1f%%', startangle=90)
+    ax3.set_title("Distribuição de Instrumentos por Categoria (Top 5)")
 
-# Exibindo os gráficos
-st.write("### Gráficos")
+    fig4, ax4 = plt.subplots(figsize=(18, 10))
+    for coluna in colunas_selecionadas[1:]:
+        ax4.fill_between(df_filtrado["Mês"], df_filtrado[coluna], alpha=0.5, label=coluna)
+    ax4.set_title("Número de Instrumentos por Mês (Gráfico de Área)")
+    ax4.set_xlabel("Mês")
+    ax4.set_ylabel("Quantidade")
+    ax4.legend()
+    ax4.set_facecolor('white')
 
-# Dividindo a tela para os gráficos
-col1, col2 = st.columns(2)
+    # Exibindo os gráficos
+    st.write("### Gráficos")
 
-with col1:
-    st.pyplot(fig1)
-    st.pyplot(fig3)
+    # Dividindo a tela para os gráficos
+    col1, col2 = st.columns(2)
 
-with col2:
-    st.pyplot(fig2)
-    st.pyplot(fig4)
+    with col1:
+        st.pyplot(fig1)
+        st.pyplot(fig3)
+
+    with col2:
+        st.pyplot(fig2)
+        st.pyplot(fig4)
